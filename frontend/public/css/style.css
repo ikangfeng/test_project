@@ -1,0 +1,175 @@
+/* ============================================================
+   倒计时页面样式 — 深色主题
+   ============================================================ */
+
+/* --- Reset & Base --- */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                 'Helvetica Neue', Arial, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- Container --- */
+.container {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: #16213e;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    min-width: 360px;
+    max-width: 480px;
+    width: 90%;
+}
+
+/* --- Title --- */
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #a0a0c0;
+    margin-bottom: 2rem;
+    letter-spacing: 0.05em;
+}
+
+/* --- Display --- */
+.display {
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+#timer-value {
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 120px;
+    font-weight: 700;
+    color: #00e5ff;
+    line-height: 1;
+    transition: color 0.3s ease;
+}
+
+.unit {
+    font-size: 2rem;
+    color: #6a6a8a;
+    margin-left: 0.25rem;
+}
+
+/* --- Progress Bar --- */
+.progress {
+    width: 100%;
+    height: 8px;
+    background: #2a2a4a;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #00e5ff, #00b8d4);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* --- Buttons --- */
+.buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.btn {
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease, opacity 0.2s ease;
+    letter-spacing: 0.03em;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-start {
+    background: #00c853;
+    color: #fff;
+}
+
+.btn-start:hover:not(:disabled) {
+    background: #00e676;
+}
+
+.btn-reset {
+    background: #ff6d00;
+    color: #fff;
+}
+
+.btn-reset:hover:not(:disabled) {
+    background: #ff9100;
+}
+
+.btn:disabled {
+    background: #4a4a6a;
+    color: #7a7a9a;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* --- Status Text --- */
+.status {
+    font-size: 0.95rem;
+    color: #6a6a8a;
+    min-height: 1.5rem;
+}
+
+/* ============================================================
+   State-based styles
+   ============================================================ */
+
+/* Running — 倒计时进行中 */
+.container.running #timer-value {
+    color: #00e676;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.container.running .progress-fill {
+    background: linear-gradient(90deg, #00e676, #00c853);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Finished — 倒计时结束 */
+.container.finished #timer-value {
+    color: #ff1744;
+    animation: blink 0.6s ease-in-out infinite;
+}
+
+.container.finished .progress-fill {
+    background: #ff1744;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* Paused — 准备就绪（默认状态，无特殊样式） */

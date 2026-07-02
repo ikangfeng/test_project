@@ -1,0 +1,11 @@
+{
+  "name": "countdown-frontend",
+  "version": "1.0.0",
+  "description": "60秒倒计时前端页面",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倒计时</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app" class="container">
+        <!-- 标题 -->
+        <h1 class="title">倒计时</h1>
+
+        <!-- 倒计时显示区 -->
+        <div id="countdown-display" class="display">
+            <span id="timer-value">60</span>
+            <span class="unit">秒</span>
+        </div>
+
+        <!-- 进度条 -->
+        <div id="progress-bar" class="progress">
+            <div id="progress-fill" class="progress-fill"></div>
+        </div>
+
+        <!-- 按钮区 -->
+        <div class="buttons">
+            <button id="btn-start" class="btn btn-start">开始</button>
+            <button id="btn-reset" class="btn btn-reset">复位</button>
+        </div>
+
+        <!-- 状态文字 -->
+        <p id="status-text" class="status">准备就绪</p>
+    </div>
+
+    <!-- 运行时配置：可在部署时通过构建工具替换或由反向代理注入 -->
+    <script>
+        // 默认值，部署时可替换为实际后端地址
+        window.COUNTDOWN_API_URL = 'http://localhost:8000/api/countdown';
+    </script>
+    <!-- 脚本加载：按依赖顺序 -->
+    <script src="js/api.js"></script>
+    <script src="js/timer.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
