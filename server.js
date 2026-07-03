@@ -32,7 +32,8 @@ function getContentType(filePath) {
 function getFilePath(url) {
   // 过滤 .. 序列作为额外防御层
   let cleanPath = url.replace(/\.\./g, '');
-  cleanPath = cleanPath === '/' ? '/index.html' : cleanPath;
+  // 去除前导 / 防止 path.resolve 将其视为绝对路径
+  cleanPath = cleanPath.replace(/^\//, '') || 'index.html';
 
   const resolved = path.resolve(PUBLIC_DIR, cleanPath);
 
