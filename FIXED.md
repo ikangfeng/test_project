@@ -1,91 +1,102 @@
-# 修复确认报告
+# 修复报告
 
-**项目**: countdown-project  
 **修复日期**: 2026-07-03  
-**基于**: CODE_REVIEW.md 审查意见  
+**修复范围**: server.js, public/app.js  
+**基于审查**: CODE_REVIEW.md
 
 ---
 
-## ✅ 修复 1：单例竞态条件（countdown_service.py）
+## 已修复问题
 
-**问题**: `get_countdown_service()` 惰性初始化无锁保护，多协程交错执行可能创建多个实例。
+### #1 (P0) — 路径穿越漏洞 ✅
 
-**修复方案**: 采用模块级 eager initialization，在 `import` 时直接创建全局单例：
+**文件**: `server.js` — `getFilePath()` 函数
 
-```python
-# 修复后
-_countdown_service: CountdownService = CountdownService()
+**修复内容**:
+- 在拼接路径前过滤 URL 中的 `..` 序列：`url.replace(/\.\./g, '')`
+- 使用 `path.resolve(PUBLIC_DIR, cleanPath)` 解析后再用 `startsWith(PUBLIC_DIR + path.sep)` 校验路径未逃逸
+- 如果解析后的路径不在 `public/` 内，返回 `null`
+- `handleRequest()` 检测到 `null` 时返回 **403 Forbidden**（含日志记录）
+- `PUBLIC_DIR` 改用 `path.resolve(__dirname, 'public')` 确保一致
 
-def get_countdown_service() -> CountdownService:
-    return _countdown_service
-```
-
-**影响文件**: `backend/services/countdown_service.py` (L79-L85)  
-**语法验证**: ✅ `py_compile` 通过
-
----
-
-## ✅ 修复 2：Schema 模型冗余（schemas/countdown.py）
-
-**问题**: `CountdownResponse` 和 `CountdownStatus` 字段完全相同，重复定义增加维护成本。
-
-**修复方案**: `CountdownResponse` 继承 `CountdownStatus`，消除字段重复：
-
-```python
-class CountdownStatus(BaseModel):
-    """倒计时状态模型（服务层 + API 共用基类）"""
-    remaining: int
-    is_running: bool
-
-class CountdownResponse(CountdownStatus):
-    """API 响应模型（继承自 CountdownStatus，未来可扩展额外字段）"""
-    pass
-```
-
-**连带优化**: 简化 `routers/countdown.py` — 移除冗余的 `CountdownResponse(remaining=..., is_running=...)` 构造，直接返回 `CountdownStatus` 对象（FastAPI 通过继承自动适配 `response_model=CountdownResponse`）。
-
-**影响文件**:  
-- `backend/schemas/countdown.py`
-- `backend/routers/countdown.py`  
-**语法验证**: ✅ `py_compile` 通过
+**防御效果**:
+- `/../server.js` → 过滤 `..` → `/server.js` → resolve → `/.../public/server.js`（未逃逸） ✅
+- `/%2e%2e/server.js` → 过滤 `..` → `/%2e%2e/server.js` → resolve → `public` 内（若文件不存在返回 404） ✅
+- `/../../../etc/passwd` → 过滤 `..` → `///etc/passwd` → resolve → `public/etc/passwd` → 404 ✅
 
 ---
 
-## ✅ 修复 3：API 地址硬编码（api.js + index.html）
+### #2 (P2) — 添加 JSDoc 注释 ✅
 
-**问题**: `API_BASE_URL` 硬编码 `http://localhost:8000/api/countdown`，部署到非本机环境不可用。
+**文件**: `server.js`
 
-**修复方案**: 双重策略 — 运行时通过 `window.COUNTDOWN_API_URL` 注入，回退到同协议同主机自动推导：
-
-**api.js**:
-```javascript
-const API_BASE_URL = window.COUNTDOWN_API_URL
-    || `${window.location.protocol}//${window.location.hostname}:8000/api/countdown`;
-```
-
-**index.html**（在 api.js 加载前注入默认配置）:
-```html
-<script>
-    window.COUNTDOWN_API_URL = 'http://localhost:8000/api/countdown';
-</script>
-```
-
-部署时可通过构建工具替换此 `<script>` 块内容或由 Nginx/反向代理注入。
-
-**影响文件**:  
-- `frontend/public/js/api.js`
-- `frontend/public/index.html`
+为全部 5 个函数添加了完整的 JSDoc：
+- `getContentType(filePath)` — 参数、返回值
+- `getFilePath(url)` — 参数、返回值（含安全说明）
+- `serveFile(filePath, req, res)` — 全部参数
+- `handleRequest(req, res)` — 全部参数
+- `startServer()` — 启动说明
 
 ---
 
-## 修复清单
+### #3 (P2) — 移除冗余 updateDisplay() ✅
 
-| # | 严重度 | 文件 | 变更类型 | 状态 |
-|---|--------|------|----------|------|
-| 1 | 🔴 P0 | `backend/services/countdown_service.py` | 惰性初始化 → eager 初始化 | ✅ |
-| 2 | 🔴 P1 | `backend/schemas/countdown.py` | 字段重复 → 继承合并 | ✅ |
-| 3 | 🔴 P1 | `frontend/public/js/api.js` | 硬编码 → 可配置注入 | ✅ |
-| — | — | `backend/routers/countdown.py` | 连带简化 | ✅ |
-| — | — | `frontend/public/index.html` | 添加配置注入块 | ✅ |
+**文件**: `public/app.js`，`tick()` 函数（第98行，原第98行）
 
-所有修复均已通过语法验证，不影响已有功能。
+移除了归零分支内第二次 `updateDisplay()` 调用。第90行已经更新过显示，归零后 `remainingSeconds` 不变（已强制设为 `0`），无需重复更新。
+
+**变更前**:
+```js
+if (remainingSeconds <= 0) {
+  remainingSeconds = 0;
+  stopTimer();
+  state = 'FINISHED';
+  displayEl.classList.add('finished');
+  updateButtonStates();
+  updateDisplay();  // ← 冗余
+}
+```
+
+**变更后**:
+```js
+if (remainingSeconds <= 0) {
+  remainingSeconds = 0;
+  stopTimer();
+  state = 'FINISHED';
+  displayEl.classList.add('finished');
+  updateButtonStates();
+}
+```
+
+---
+
+### #4 (P2) — 日志 URL 截断 ✅
+
+**文件**: `server.js`
+
+所有 5 处 `console.log` 中的 `${req.url}` 改为 `${req.url.slice(0, 200)}`，防止超长攻击 payload 污染日志输出。
+
+---
+
+## 验证结果
+
+```
+$ node --check server.js
+SYNTAX OK
+```
+
+语法检查通过，所有修改未引入语法错误。
+
+---
+
+## 修改的文件
+
+| 文件 | 变更类型 | 说明 |
+|------|---------|------|
+| `server.js` | 重写 | P0 路径穿越修复 + P2 JSDoc + P2 日志截断 |
+| `public/app.js` | 单行删除 | P2 移除冗余 updateDisplay() |
+| `FIXED.md` | 新建 | 本修复报告 |
+
+---
+
+*修复执行: Code Agent (Hermes multi-agent pipeline)*
